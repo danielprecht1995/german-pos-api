@@ -3,7 +3,7 @@ services:
     name: german-pos-api
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python -m spacy download de_core_news_sm
+    buildCommand: pip install -r requirements.txt
     startCommand: uvicorn german_pos_api:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
