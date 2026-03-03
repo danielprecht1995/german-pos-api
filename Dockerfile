@@ -6,7 +6,9 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && python -m spacy download de_core_news_sm
+# Install de_core_news_sm via wheel (spacy download can 404 in Docker)
+RUN pip install --no-cache-dir -r requirements.txt \
+  && pip install --no-cache-dir https://github.com/explosion/spacy-models/releases/download/de_core_news_sm-3.7.0/de_core_news_sm-3.7.0-py3-none-any.whl
 
 COPY german_pos_api.py app.py Procfile ./
 
