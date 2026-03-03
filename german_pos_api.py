@@ -26,32 +26,30 @@ from pydantic import BaseModel
 from typing import Dict, Any
 import os
 
-# ---------- Load Primary: spaCy ----------
-import spacy
-
-SPACY_MODEL = os.getenv("SPACY_MODEL", "de_core_news_lg")
+# ---------- Load Primary: spaCy (optional, no wheel on Python 3.13) ----------
 nlp_spacy = None
+SPACY_MODEL = os.getenv("SPACY_MODEL", "de_core_news_sm")
 try:
+    import spacy
     nlp_spacy = spacy.load(SPACY_MODEL)
+    print(f"[OK] spaCy model '{SPACY_MODEL}' loaded")
 except Exception as e:
-    print(f"[WARN] spaCy model '{SPACY_MODEL}' not loaded: {e}")
-    nlp_spacy = None
+    print(f"[WARN] spaCy not available: {e}")
 
-# ---------- Load Backup: Stanza ----------
-import stanza
-
+# ---------- Load Backup: Stanza (optional) ----------
 STANZA_LANG = "de"
 nlp_stanza = None
 try:
+    import stanza
     stanza.download(STANZA_LANG, processors="tokenize,pos,lemma,mwt", verbose=False)
     nlp_stanza = stanza.Pipeline(
         lang=STANZA_LANG,
         processors="tokenize,pos,lemma,mwt",
         tokenize_pretokenized=False
     )
+    print("[OK] Stanza loaded")
 except Exception as e:
-    print(f"[WARN] Stanza model not loaded: {e}")
-    nlp_stanza = None
+    print(f"[WARN] Stanza not available: {e}")
 
 # ---------- FastAPI App ----------
 app = FastAPI(title="German POS API", version="1.0.0")
@@ -139,4 +137,7 @@ def tag(req: TagRequest):
         except Exception as e:
             print(f"[ERR] Stanza failed: {e}")
 
-    raise HTTPException(status_code=503, detail="No tagging provider available")
+    # No NLP libs: return basic tokenization so the app still works
+    tokens = [{"text": w, "pos": "X", "lemma": w.lower() if req.includeLemma else None, "morph": {}}
+              for w in text.split() if w.strip()]
+    return {"model": "fallback", "transformer": False, "sentences": [{"tokens": tokens}]}
